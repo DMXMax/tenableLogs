@@ -1,31 +1,48 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-  "os"
-  "strings"
+	"os"
+	"strings"
 )
+
+type Filter struct {
+	filterString string
+}
+
+func (f Filter) getFilterString() string {
+	if f.filterString == "" {
+		return ""
+	} else {
+
+		return "?" + f.filterString
+	}
+}
+
 var keyHeader strings.Builder
 
-func main() {
+func GetLogEntries(f Filter) ([]byte, error) {
 
-	url := "https://cloud.tenable.com/audit-log/v1/events"
+	url := "https://cloud.tenable.com/audit-log/v1/events" + f.getFilterString()
+
+	fmt.Println(url)
 
 	req, _ := http.NewRequest("GET", url, nil)
-  accessKey := os.Getenv("ACCESS_KEY")  
-  secretKey := os.Getenv("SECRET_KEY")
+	accessKey := os.Getenv("ACCESS_KEY")
+	secretKey := os.Getenv("SECRET_KEY")
 
-  if accessKey == ""{
-    panic("AK not defined")
-  }
+	if accessKey == "" {
+		return nil, errors.New("AK not defined")
+	}
 
-  if secretKey == ""{
-    panic("SK not defined")
-  }
+	if secretKey == "" {
+		return nil, errors.New("SK not defined")
+	}
 
-  fmt.Fprintf(&keyHeader, "accessKey=%s; secretKey=%s", accessKey, secretKey)
+	fmt.Fprintf(&keyHeader, "accessKey=%s; secretKey=%s", accessKey, secretKey)
 
 	req.Header.Add("x-apikeys", keyHeader.String())
 
@@ -33,8 +50,5 @@ func main() {
 
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
-
-	fmt.Println(res)
-	fmt.Println(string(body))
-
+	return body, nil
 }
